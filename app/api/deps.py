@@ -11,7 +11,7 @@ from app.models.models import User, UserRole
 from app.db.session import get_db # We will create this session generator next
 
 reusable_oauth2 = OAuth2PasswordBearer(
-    tokenUrl=f"{settings.API_V1_STR}/login/access-token"
+    tokenUrl=f"{settings.API_V1_STR}/auth/login/access-token"
 )
 
 async def get_current_user(
