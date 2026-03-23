@@ -19,7 +19,8 @@ async def calculate_order_price(db: AsyncSession, items_input: List[Dict]) -> Di
             subtotal += item.base_price * entry["quantity"]
 
     # 2. Find Applicable Offers
-    now = datetime.now(timezone.utc)
+    # now = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     offer_query = await db.execute(
         select(Offer).where(
             Offer.is_active == True,

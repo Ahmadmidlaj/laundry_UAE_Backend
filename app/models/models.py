@@ -59,6 +59,8 @@ class Order(Base):
     items = relationship("OrderItem", back_populates="order")
     payment = relationship("Transaction", back_populates="order", uselist=False)
 
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
 class OrderItem(Base):
     __tablename__ = "order_items"
     id = Column(Integer, primary_key=True, index=True)

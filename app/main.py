@@ -33,7 +33,7 @@ async def sqlalchemy_integrity_exception_handler(request: Request, exc: Integrit
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["Authentication"])
 app.include_router(items.router, prefix=f"{settings.API_V1_STR}/items", tags=["Laundry Items"])
 app.include_router(orders.router, prefix=f"{settings.API_V1_STR}/orders", tags=["Orders"])
-app.include_router(operations.router, prefix=f"{settings.API_V1_STR}/ops", tags=["Operations"])
+app.include_router(operations.router, prefix=f"{settings.API_V1_STR}/operations", tags=["Operations"])
 app.include_router(offers.router, prefix=f"{settings.API_V1_STR}/offers", tags=["offers"])
 app.include_router(users.router, prefix=f"{settings.API_V1_STR}/users", tags=["users"])
 app.include_router(reports.router, prefix=f"{settings.API_V1_STR}/reports", tags=["reports"])

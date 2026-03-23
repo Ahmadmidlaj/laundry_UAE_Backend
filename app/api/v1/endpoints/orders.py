@@ -6,8 +6,47 @@ from app.models.models import User, Order, OrderItem, OrderStatus, LaundryItem
 from app.schemas.order import OrderCreate, OrderResponse
 from app.services.pricing_service import calculate_order_price
 from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 
 router = APIRouter()
+
+
+@router.get("/", response_model=list[OrderResponse])
+async def get_my_orders(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Fetch all orders for the logged-in customer."""
+    result = await db.execute(
+        select(Order)
+        .where(Order.customer_id == current_user.id)
+        .options(selectinload(Order.customer), 
+            # THE FIX: Added joinedload here
+            selectinload(Order.items).joinedload(OrderItem.item))  # <--- THIS IS THE FIX
+        .order_by(Order.id.desc())
+    )
+    return result.scalars().all()
+
+@router.get("/{order_id}", response_model=OrderResponse)
+async def get_order_detail(
+    order_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    result = await db.execute(
+        select(Order)
+        .where(Order.id == order_id)
+        .options(
+            selectinload(Order.customer),selectinload(Order.items).joinedload(OrderItem.item) # <--- ADD THIS so details show customer info
+        )
+    )
+           
+    order = result.scalars().first()
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+        
+    return order
 
 @router.post("/", response_model=OrderResponse)
 async def create_order(
@@ -32,6 +71,9 @@ async def create_order(
     db.add(new_order)
     await db.flush() # Get the order ID without committing yet
 
+
+    order_id = new_order.id
+
     # 3. Add the items to the order
     for item_data in order_in.items:
         # Fetch current unit price to "lock it in"
@@ -39,13 +81,23 @@ async def create_order(
         li = res.scalars().first()
         
         oi = OrderItem(
-            order_id=new_order.id,
+            order_id=order_id,
             item_id=item_data.item_id,
             estimated_quantity=item_data.estimated_quantity,
             unit_price=li.base_price if li else 0.0
         )
         db.add(oi)
+    
 
     await db.commit()
-    await db.refresh(new_order)
-    return new_order
+    result = await db.execute(
+        select(Order)
+        .where(Order.id == order_id)
+        .options(selectinload(Order.customer), 
+            # THE FIX: Added joinedload here so the newly created order returns names
+            selectinload(Order.items).joinedload(OrderItem.item)) 
+    )
+    final_order = result.scalars().first()
+    # await db.refresh(new_order)
+    # return new_order
+    return final_order

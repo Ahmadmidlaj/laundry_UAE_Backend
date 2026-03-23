@@ -5,12 +5,12 @@ from typing import List
 
 from app.db.session import get_db
 from app.api.deps import RoleChecker
-from app.models.models import UserRole, Order, OrderStatus
+from app.models.models import OrderItem, UserRole, Order, OrderStatus
 from app.schemas.order import OrderResponse
 from app.schemas.pickup import PickupCreate
 from app.schemas.delivery import DeliveryCreate 
-from app.services.order_service import process_pickup
-
+from app.services.order_service import process_delivery, process_pickup
+from sqlalchemy.orm import selectinload
 router = APIRouter()
 
 # 1. View Pickup Queue (NEW_ORDER status)
@@ -20,7 +20,10 @@ router = APIRouter()
 )
 async def get_pickup_queue(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(Order).where(Order.status == OrderStatus.NEW_ORDER).order_at(Order.pickup_date)
+        select(Order)
+        .where(Order.status == OrderStatus.NEW_ORDER)
+        .options(selectinload(Order.customer), selectinload(Order.items).joinedload(OrderItem.item))  # <--- ADDED
+        .order_by(Order.pickup_date)         # <--- Also fixed .order_at to .order_by
     )
     return result.scalars().all()
 
@@ -44,7 +47,10 @@ async def confirm_pickup(
 )
 async def get_delivery_queue(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(Order).where(Order.status == OrderStatus.PICKED_UP).order_by(Order.id.desc())
+        select(Order)
+        .where(Order.status == OrderStatus.PICKED_UP)
+        .options(selectinload(Order.customer),selectinload(Order.items).joinedload(OrderItem.item))  # <--- ADDED
+        .order_by(Order.id.desc())
     )
     return result.scalars().all()
 
