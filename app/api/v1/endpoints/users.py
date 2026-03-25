@@ -10,27 +10,7 @@ from app.schemas.user import UserResponse, UserUpdate
 
 router = APIRouter()
 
-# ADMIN ONLY: List all users (to see who to promote)
-@router.get("/", response_model=List[UserResponse], dependencies=[Depends(RoleChecker([UserRole.ADMIN]))])
-async def list_users(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User))
-    return result.scalars().all()
 
-# ADMIN ONLY: Change a user's role or status
-@router.patch("/{user_id}", response_model=UserResponse, dependencies=[Depends(RoleChecker([UserRole.ADMIN]))])
-async def update_user_role(user_id: int, user_in: UserUpdate, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalars().first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    update_data = user_in.model_dump(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(user, key, value)
-        
-    await db.commit()
-    await db.refresh(user)
-    return user
 
 # CUSTOMER/ALL: Get own profile details
 @router.get("/me", response_model=UserResponse)
@@ -57,3 +37,25 @@ async def update_user_me(
     await db.commit()
     await db.refresh(current_user)
     return current_user
+
+# ADMIN ONLY: List all users (to see who to promote)
+@router.get("/", response_model=List[UserResponse], dependencies=[Depends(RoleChecker([UserRole.ADMIN]))])
+async def list_users(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User))
+    return result.scalars().all()
+
+# ADMIN ONLY: Change a user's role or status
+@router.patch("/{user_id}", response_model=UserResponse, dependencies=[Depends(RoleChecker([UserRole.ADMIN]))])
+async def update_user_role(user_id: int, user_in: UserUpdate, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    update_data = user_in.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(user, key, value)
+        
+    await db.commit()
+    await db.refresh(user)
+    return user
