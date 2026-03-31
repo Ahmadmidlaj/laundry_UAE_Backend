@@ -1,3 +1,4 @@
+from app.schemas.order import AdminOrderUpdate
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -57,6 +58,9 @@ async def process_pickup(db: AsyncSession, order_id: int, pickup_data: PickupCre
     order.final_price = totals["final_total"]
     order.discount_applied = totals["discount_applied"]
     order.status = OrderStatus.PICKED_UP
+
+    order.expected_delivery_date = pickup_data.expected_delivery_date
+    order.expected_delivery_time = pickup_data.expected_delivery_time
     
     await db.commit()
     
@@ -94,6 +98,46 @@ async def process_delivery(db: AsyncSession, order_id: int, delivery_data: Deliv
     await db.commit()
     
     # 4. RETURN with relations loaded (The Fix)
+    return await _get_order_with_relations(db, order_id)
+
+
+
+async def admin_force_update_order(db: AsyncSession, order_id: int, update_data: AdminOrderUpdate) -> Order:
+    order = await _get_order_with_relations(db, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    data = update_data.model_dump(exclude_unset=True)
+    
+    # Logic: Handle Item Overrides & Price Recalculation
+    if "items" in data:
+        new_items = data.pop("items")
+        # 1. Clear existing items
+        await db.execute(delete(OrderItem).where(OrderItem.order_id == order_id))
+        
+        # 2. Recalculate totals using pricing service
+        pricing_input = [{"item_id": i["item_id"], "quantity": i["final_quantity"]} for i in new_items]
+        totals = await calculate_order_price(db, pricing_input)
+        
+        # 3. Re-insert items with current unit prices
+        for i in new_items:
+            res = await db.execute(select(LaundryItem).where(LaundryItem.id == i["item_id"]))
+            li = res.scalars().first()
+            db.add(OrderItem(
+                order_id=order_id,
+                item_id=i["item_id"],
+                final_quantity=i["final_quantity"],
+                unit_price=li.base_price if li else 0.0
+            ))
+            
+        order.estimated_price = totals["final_total"] # Admin update sets the new 'estimate'
+        order.discount_applied = totals["discount_applied"]
+
+    # Update Header Fields (Status, Dates, etc.)
+    for key, value in data.items():
+        setattr(order, key, value)
+
+    await db.commit()
     return await _get_order_with_relations(db, order_id)
 
 # from sqlalchemy.ext.asyncio import AsyncSession

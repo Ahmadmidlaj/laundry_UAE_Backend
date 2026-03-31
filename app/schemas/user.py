@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional
 from app.models.models import UserRole
 
@@ -12,6 +12,16 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
     role: UserRole = UserRole.CUSTOMER # Default role
+
+    @field_validator('password')
+    @classmethod
+    def password_must_be_numeric(cls, v: str) -> str:
+        # Check if password is only digits and >= 4
+        if not v.isdigit():
+            raise ValueError('Password must contain only numbers')
+        if len(v) < 4:
+            raise ValueError('Password must be at least 4 digits')
+        return v
 
 class UserResponse(UserBase):
     id: int
@@ -30,3 +40,4 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = True
     flat_number: Optional[str] = None
     building_name: Optional[str] = None
+    password: Optional[str] = None

@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List
+from datetime import datetime
 
 class PickupItemUpdate(BaseModel):
     item_id: int
@@ -7,3 +8,5 @@ class PickupItemUpdate(BaseModel):
 
 class PickupCreate(BaseModel):
     items: List[PickupItemUpdate]
+    expected_delivery_date: datetime  # Changed to datetime per your note
+    expected_delivery_time: str

@@ -1,14 +1,29 @@
+from app.services.order_service import admin_force_update_order
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
-from app.api.deps import get_current_user
-from app.models.models import User, Order, OrderItem, OrderStatus, LaundryItem
-from app.schemas.order import OrderCreate, OrderResponse
+from app.api.deps import RoleChecker, get_current_user
+from app.models.models import User, Order, OrderItem, OrderStatus, LaundryItem, UserRole
+from app.schemas.order import AdminOrderUpdate, OrderCreate, OrderResponse
 from app.services.pricing_service import calculate_order_price
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
 router = APIRouter()
+
+
+@router.get("/all", response_model=list[OrderResponse], dependencies=[Depends(RoleChecker([UserRole.ADMIN]))])
+async def get_all_orders_admin(db: AsyncSession = Depends(get_db)):
+    """ADMIN ONLY: Fetch every single order in the system."""
+    result = await db.execute(
+        select(Order)
+        .options(
+            selectinload(Order.customer), 
+            selectinload(Order.items).joinedload(OrderItem.item)
+        )
+        .order_by(Order.id.desc())
+    )
+    return result.scalars().all()
 
 
 @router.get("/", response_model=list[OrderResponse])
@@ -101,3 +116,16 @@ async def create_order(
     # await db.refresh(new_order)
     # return new_order
     return final_order
+
+
+
+
+
+@router.patch("/{order_id}/admin", response_model=OrderResponse, dependencies=[Depends(RoleChecker([UserRole.ADMIN]))])
+async def update_order_admin(
+    order_id: int,
+    update_data: AdminOrderUpdate,
+    db: AsyncSession = Depends(get_db)
+):
+    """ADMIN ONLY: Force update any order detail (quantities, status, dates)."""
+    return await admin_force_update_order(db, order_id, update_data)

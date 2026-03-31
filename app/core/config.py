@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings,SettingsConfigDict
 from typing import List
 
 class Settings(BaseSettings):
@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://user:pass@host/dbname"
 
     class Config:
-        env_file = ".env"
+        env_file = ".env",
+        extra="ignore"
+
+  
 
 settings = Settings()

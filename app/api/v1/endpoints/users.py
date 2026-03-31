@@ -7,6 +7,7 @@ from app.db.session import get_db
 from app.api.deps import RoleChecker, get_current_user
 from app.models.models import User, UserRole
 from app.schemas.user import UserResponse, UserUpdate
+from app.core.security import get_password_hash
 
 router = APIRouter()
 
@@ -53,6 +54,11 @@ async def update_user_role(user_id: int, user_in: UserUpdate, db: AsyncSession =
         raise HTTPException(status_code=404, detail="User not found")
     
     update_data = user_in.model_dump(exclude_unset=True)
+
+    if "password" in update_data:
+        update_data["hashed_password"] = get_password_hash(update_data["password"])
+        del update_data["password"]
+        
     for key, value in update_data.items():
         setattr(user, key, value)
         

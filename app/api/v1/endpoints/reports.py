@@ -3,7 +3,7 @@ from sqlalchemy import func
 from sqlalchemy.future import select
 from app.db.session import get_db
 from app.api.deps import RoleChecker, get_current_user
-from app.models.models import User, Order, OrderStatus, UserRole, Offer, Transaction
+from app.models.models import LaundryItem, OrderItem, User, Order, OrderStatus, UserRole, Offer, Transaction
 from typing import List  
 from app.schemas.reports import AdminDashboard, CustomerStats 
 from sqlalchemy.ext.asyncio import AsyncSession 
@@ -61,4 +61,37 @@ async def get_customer_stats(
         "total_orders": total_o.scalar() or 0,
         "monthly_spending": spending.scalar() or 0.0,
         "total_discounts": discounts.scalar() or 0.0
+    }
+
+@router.get("/admin/analytics", dependencies=[Depends(RoleChecker([UserRole.ADMIN]))])
+async def get_advanced_analytics(db: AsyncSession = Depends(get_db)):
+    # 1. Monthly Revenue Trend (Last 6 Months)
+    # This varies slightly by DB, but here is a standard approach for grouped totals
+    revenue_stmt = (
+        select(
+            func.strftime('%Y-%m', Transaction.delivery_date).label('month'),
+            func.sum(Transaction.received_amount).label('total')
+        )
+        .group_by('month')
+        .order_by('month')
+        .limit(6)
+    )
+    revenue_res = await db.execute(revenue_stmt)
+    revenue_trend = [{"month": r.month, "amount": r.total} for r in revenue_res.all()]
+
+    # 2. Top Performing Items (Most Ordered)
+    item_stmt = (
+        select(LaundryItem.name, func.sum(OrderItem.final_quantity).label('qty'))
+        .join(OrderItem, LaundryItem.id == OrderItem.item_id)
+        .group_by(LaundryItem.name)
+        .order_by(func.sum(OrderItem.final_quantity).desc())
+        .limit(5)
+    )
+    item_res = await db.execute(item_stmt)
+    top_items = [{"name": r.name, "count": r.qty} for r in item_res.all()]
+
+    return {
+        "revenue_trend": revenue_trend,
+        "top_items": top_items,
+        "summary": await get_admin_dashboard(db) # Reuse your existing summary logic
     }

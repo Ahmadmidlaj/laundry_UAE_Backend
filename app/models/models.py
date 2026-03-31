@@ -48,6 +48,9 @@ class Order(Base):
     pickup_date = Column(DateTime)
     pickup_time = Column(String)
     notes = Column(String)
+
+    expected_delivery_date = Column(DateTime, nullable=True)
+    expected_delivery_time = Column(String, nullable=True)
     
     # Financials
     estimated_price = Column(Float, default=0.0)
