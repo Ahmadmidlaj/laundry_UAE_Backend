@@ -1,3 +1,4 @@
+from app.core import security
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -34,6 +35,10 @@ async def update_user_me(
 
     for key, value in update_data.items():
         setattr(current_user, key, value)
+    
+    if user_in.password is not None:
+        # Import your pwd_context/security utility here
+        current_user.hashed_password = security.get_password_hash(user_in.password)
         
     await db.commit()
     await db.refresh(current_user)
