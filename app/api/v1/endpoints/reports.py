@@ -1,39 +1,70 @@
-from fastapi import APIRouter, Depends
+# app/api/v1/endpoints/reports.py
+from fastapi import APIRouter, Depends, Query
+import datetime
 from sqlalchemy import func
 from sqlalchemy.future import select
 from app.db.session import get_db
 from app.api.deps import RoleChecker, get_current_user
-from app.models.models import LaundryItem, OrderItem, User, Order, OrderStatus, UserRole, Offer, Transaction
-from typing import List  
+from app.models.models import LaundryItem, OrderItem, User, Order, OrderStatus, UserRole, Offer, Transaction, Expense
+from typing import List  ,Optional
 from app.schemas.reports import AdminDashboard, CustomerStats 
 from sqlalchemy.ext.asyncio import AsyncSession 
+
 router = APIRouter()
 
 @router.get("/admin/dashboard", 
     response_model=AdminDashboard,
     dependencies=[Depends(RoleChecker([UserRole.ADMIN]))]
 )
-async def get_admin_dashboard(db: AsyncSession = Depends(get_db)):
-    # Total Customers
-    cust_count = await db.execute(select(func.count(User.id)).where(User.role == UserRole.CUSTOMER))
+async def get_admin_dashboard(
+    days: Optional[int] = Query(None, description="Filter stats by the last X days"),
+    db: AsyncSession = Depends(get_db)
+):
+    # 1. Base Statements
+    cust_stmt = select(func.count(User.id)).where(User.role == UserRole.CUSTOMER)
+    new_o_stmt = select(func.count(Order.id)).where(Order.status == OrderStatus.NEW_ORDER)
+    picked_o_stmt = select(func.count(Order.id)).where(Order.status == OrderStatus.PICKED_UP)
+    del_o_stmt = select(func.count(Order.id)).where(Order.status == OrderStatus.DELIVERED)
+    rev_stmt = select(func.sum(Transaction.received_amount))
+    exp_stmt = select(func.sum(Expense.amount))
+    off_stmt = select(func.count(Offer.id)).where(Offer.is_active == True)
+
+    # 2. Apply Dynamic Date Filters if 'days' is provided
+    if days:
+        cutoff_date = datetime.datetime.now() - datetime.timedelta(days=days)
+        new_o_stmt = new_o_stmt.where(Order.created_at >= cutoff_date)
+        picked_o_stmt = picked_o_stmt.where(Order.created_at >= cutoff_date)
+        del_o_stmt = del_o_stmt.where(Order.created_at >= cutoff_date)
+        rev_stmt = rev_stmt.where(Transaction.delivery_date >= cutoff_date)
+        exp_stmt = exp_stmt.where(Expense.expense_date >= cutoff_date)
+        # Note: Total Customers and Offers generally remain all-time metrics, 
+        # but you can filter them here too if you add `created_at` to those tables.
+
+    # 3. Execute Queries
+    cust_count = await db.execute(cust_stmt)
+    new_o = await db.execute(new_o_stmt)
+    picked_o = await db.execute(picked_o_stmt)
+    delivered_o = await db.execute(del_o_stmt)
     
-    # Order counts by status
-    new_o = await db.execute(select(func.count(Order.id)).where(Order.status == OrderStatus.NEW_ORDER))
-    picked_o = await db.execute(select(func.count(Order.id)).where(Order.status == OrderStatus.PICKED_UP))
-    delivered_o = await db.execute(select(func.count(Order.id)).where(Order.status == OrderStatus.DELIVERED))
+    # FINANCIAL ENGINE
+    revenue_res = await db.execute(rev_stmt)
+    revenue = revenue_res.scalar() or 0.0
     
-    # Total Revenue (Sum of all received amounts in Transactions)
-    revenue = await db.execute(select(func.sum(Transaction.received_amount)))
+    expense_res = await db.execute(exp_stmt)
+    total_expenses = expense_res.scalar() or 0.0
     
-    # Active Offers
-    offers = await db.execute(select(func.count(Offer.id)).where(Offer.is_active == True))
+    net_profit = revenue - total_expenses
+    
+    offers = await db.execute(off_stmt)
 
     return {
         "total_customers": cust_count.scalar() or 0,
         "new_orders": new_o.scalar() or 0,
         "picked_up_orders": picked_o.scalar() or 0,
         "delivered_orders": delivered_o.scalar() or 0,
-        "total_revenue": revenue.scalar() or 0.0,
+        "total_revenue": revenue,
+        "total_expenses": total_expenses,
+        "net_profit": net_profit,
         "active_offers": offers.scalar() or 0
     }
 
@@ -66,7 +97,6 @@ async def get_customer_stats(
 @router.get("/admin/analytics", dependencies=[Depends(RoleChecker([UserRole.ADMIN]))])
 async def get_advanced_analytics(db: AsyncSession = Depends(get_db)):
     # 1. Monthly Revenue Trend (Last 6 Months)
-    # This varies slightly by DB, but here is a standard approach for grouped totals
     revenue_stmt = (
         select(
             func.strftime('%Y-%m', Transaction.delivery_date).label('month'),
@@ -93,5 +123,5 @@ async def get_advanced_analytics(db: AsyncSession = Depends(get_db)):
     return {
         "revenue_trend": revenue_trend,
         "top_items": top_items,
-        "summary": await get_admin_dashboard(db) # Reuse your existing summary logic
+        "summary": await get_admin_dashboard(db) # Reuses the logic to include new profit metrics
     }

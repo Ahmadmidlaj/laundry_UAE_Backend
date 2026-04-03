@@ -3,6 +3,8 @@ from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Enu
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sqlalchemy.ext.declarative import declarative_base
+import string
+import random
 
 Base = declarative_base()
 
@@ -17,6 +19,11 @@ class OrderStatus(str, enum.Enum):
     DELIVERED = "DELIVERED"
     CANCELLED = "CANCELLED"
 
+
+def generate_referral_code():
+    """Helper to generate a random 8-char code"""
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
@@ -29,8 +36,15 @@ class User(Base):
     # Address details for customers
     flat_number = Column(String)
     building_name = Column(String)
+
+    # referral_code = Column(String, unique=True, index=True, nullable=True)
+    referral_code = Column(String, unique=True, index=True, default=generate_referral_code)
+    referred_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    wallet_balance = Column(Float, default=0.0)
     
     orders = relationship("Order", back_populates="customer")
+
+    referrals = relationship("User", backref="referred_by", remote_side=[id])
 
 class LaundryItem(Base):
     __tablename__ = "laundry_items"
@@ -96,3 +110,42 @@ class Offer(Base):
     start_date = Column(DateTime)
     end_date = Column(DateTime)
     is_active = Column(Boolean, default=True)
+
+class Building(Base):
+    __tablename__ = "buildings"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True, nullable=False)
+    # Storing flats as a JSON array (e.g., ["101", "102", "A1"]) is perfectly scalable 
+    # for this use-case and prevents unnecessary table joins.
+    flats = Column(JSON, default=list) 
+    is_active = Column(Boolean, default=True) # Soft-delete to protect historical user records
+
+
+
+class ExpenseCategory(Base):
+    __tablename__ = "expense_categories"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True, nullable=False)
+    is_active = Column(Boolean, default=True)
+
+class Expense(Base):
+    __tablename__ = "expenses"
+    id = Column(Integer, primary_key=True, index=True)
+    category_id = Column(Integer, ForeignKey("expense_categories.id"), nullable=False)
+    amount = Column(Float, nullable=False)
+    expense_date = Column(DateTime(timezone=True), default=func.now())
+    remarks = Column(String, nullable=True)
+    
+    # Relationship allows us to easily fetch the category name when querying an expense
+    category = relationship("ExpenseCategory")
+
+
+class SystemConfig(Base):
+    """Global admin configurations for the application."""
+    __tablename__ = "system_configs"
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # Referral System Toggles
+    referral_system_enabled = Column(Boolean, default=False)
+    reward_credits_per_referral = Column(Float, default=50.0) # E.g., Give 50 credits
+    credit_conversion_rate = Column(Float, default=1.0)       # E.g., 1 credit = 1 AED

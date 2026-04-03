@@ -20,6 +20,7 @@ class OrderCreate(BaseModel):
     pickup_time: str # e.g., "10:00 AM - 12:00 PM"
     notes: Optional[str] = None
     items: List[OrderItemBase]
+    credits_to_use: Optional[float] = 0.0
 
 class OrderItemResponse(OrderItemBase):
     unit_price: float

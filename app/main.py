@@ -1,7 +1,8 @@
+from app.core import config
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.api.v1.endpoints import auth, items, orders, operations, offers, users, reports# We'll create items next
+from app.api.v1.endpoints import auth, buildings, items, orders, operations, offers, users, reports,expenses,config # We'll create items next
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -37,6 +38,9 @@ app.include_router(operations.router, prefix=f"{settings.API_V1_STR}/operations"
 app.include_router(offers.router, prefix=f"{settings.API_V1_STR}/offers", tags=["offers"])
 app.include_router(users.router, prefix=f"{settings.API_V1_STR}/users", tags=["users"])
 app.include_router(reports.router, prefix=f"{settings.API_V1_STR}/reports", tags=["reports"])
+app.include_router(buildings.router, prefix=f"{settings.API_V1_STR}/buildings", tags=["Buildings"])
+app.include_router(expenses.router, prefix=f"{settings.API_V1_STR}/expenses", tags=["Expenses"])
+app.include_router(config.router, prefix=f"{settings.API_V1_STR}/config", tags=["System Config"])
 
 @app.get("/")
 async def root():

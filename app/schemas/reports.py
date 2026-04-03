@@ -8,6 +8,9 @@ class AdminDashboard(BaseModel):
     delivered_orders: int
     total_revenue: float
     active_offers: int
+    total_expenses: float  
+    net_profit: float      
+    active_offers: int
 
 class CustomerStats(BaseModel):
     total_orders: int

@@ -12,6 +12,7 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
     role: UserRole = UserRole.CUSTOMER # Default role
+    referral_code: Optional[str] = None
 
     @field_validator('password')
     @classmethod
@@ -26,6 +27,9 @@ class UserCreate(UserBase):
 class UserResponse(UserBase):
     id: int
     role: UserRole
+    referral_code: Optional[str] = None
+    wallet_balance: Optional[float] = 0.0
+    referred_by_id: Optional[int] = None
 
     class Config:
         from_attributes = True
