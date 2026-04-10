@@ -70,6 +70,8 @@ class Order(Base):
     estimated_price = Column(Float, default=0.0)
     final_price = Column(Float, default=0.0)
     discount_applied = Column(Float, default=0.0)
+
+    credits_used = Column(Float, default=0.0)
     
     # Relationships
     customer = relationship("User", back_populates="orders")
