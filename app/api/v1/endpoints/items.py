@@ -8,6 +8,8 @@ from app.schemas.item import ItemCreate, ItemUpdate, ItemResponse
 from app.api.deps import RoleChecker
 from app.models.models import UserRole
 
+from app.models.models import ServiceCategory
+
 router = APIRouter()
 
 # PUBLIC/ALL ROLES: View the price list
@@ -33,3 +35,13 @@ async def update_existing_item(item_id: int, item_in: ItemUpdate, db: AsyncSessi
     if not updated:
         raise HTTPException(status_code=404, detail="Item not found")
     return updated
+
+# @router.get("/services/categories")
+# async def list_service_categories(db: AsyncSession = Depends(get_db)):
+#     """Fetch all active service categories (e.g., Dry Clean, Ironing)"""
+#     result = await db.execute(
+#         select(ServiceCategory).where(ServiceCategory.is_active == True)
+#     )
+#     categories = result.scalars().all()
+#     # Format to match the SimpleCategoryResponse interface
+#     return [{"id": c.id, "name": c.name} for c in categories]

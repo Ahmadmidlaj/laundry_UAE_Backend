@@ -22,7 +22,11 @@ async def get_pickup_queue(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(Order)
         .where(Order.status == OrderStatus.NEW_ORDER)
-        .options(selectinload(Order.customer), selectinload(Order.items).joinedload(OrderItem.item))  # <--- ADDED
+        .options(
+            selectinload(Order.customer), 
+            selectinload(Order.items).joinedload(OrderItem.item),              # <-- KEEP THIS
+            selectinload(Order.items).joinedload(OrderItem.service_category)   # <-- ADD THIS
+        )  # <--- ADDED
         .order_by(Order.pickup_date)         # <--- Also fixed .order_at to .order_by
     )
     return result.scalars().all()
@@ -49,7 +53,11 @@ async def get_delivery_queue(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(Order)
         .where(Order.status == OrderStatus.PICKED_UP)
-        .options(selectinload(Order.customer),selectinload(Order.items).joinedload(OrderItem.item))  # <--- ADDED
+        .options(
+            selectinload(Order.customer),
+            selectinload(Order.items).joinedload(OrderItem.item),              # <-- KEEP THIS
+            selectinload(Order.items).joinedload(OrderItem.service_category)   # <-- ADD THIS
+        ) # <--- ADDED
         .order_by(Order.id.desc())
     )
     return result.scalars().all()

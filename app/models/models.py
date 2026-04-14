@@ -50,7 +50,9 @@ class LaundryItem(Base):
     __tablename__ = "laundry_items"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
-    base_price = Column(Float, nullable=False)
+    # base_price = Column(Float, nullable=False)
+
+    services = relationship("ItemServicePrice", back_populates="item", cascade="all, delete-orphan")
 
 class Order(Base):
     __tablename__ = "orders"
@@ -85,6 +87,8 @@ class OrderItem(Base):
     id = Column(Integer, primary_key=True, index=True)
     order_id = Column(Integer, ForeignKey("orders.id"))
     item_id = Column(Integer, ForeignKey("laundry_items.id"))
+
+    service_category_id = Column(Integer, ForeignKey("service_categories.id"), nullable=False)
     
     estimated_quantity = Column(Integer, default=0)
     final_quantity = Column(Integer, default=0)
@@ -92,6 +96,8 @@ class OrderItem(Base):
 
     order = relationship("Order", back_populates="items")
     item = relationship("LaundryItem")
+
+    service_category = relationship("ServiceCategory")
 
 class Transaction(Base):
     __tablename__ = "transactions"
@@ -151,3 +157,20 @@ class SystemConfig(Base):
     referral_system_enabled = Column(Boolean, default=False)
     reward_credits_per_referral = Column(Float, default=50.0) # E.g., Give 50 credits
     credit_conversion_rate = Column(Float, default=1.0)       # E.g., 1 credit = 1 AED
+
+
+class ServiceCategory(Base):
+    __tablename__ = "service_categories"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True, nullable=False) # e.g., "Wash & Iron", "Dry Clean"
+    is_active = Column(Boolean, default=True)
+
+class ItemServicePrice(Base):
+    __tablename__ = "item_service_prices"
+    id = Column(Integer, primary_key=True, index=True)
+    item_id = Column(Integer, ForeignKey("laundry_items.id", ondelete="CASCADE"), nullable=False)
+    service_category_id = Column(Integer, ForeignKey("service_categories.id", ondelete="CASCADE"), nullable=False)
+    price = Column(Float, nullable=False)
+
+    item = relationship("LaundryItem", back_populates="services")
+    category = relationship("ServiceCategory")
