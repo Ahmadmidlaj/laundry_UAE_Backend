@@ -56,6 +56,7 @@ class OrderResponse(BaseModel):
     customer: Optional[UserResponse] = None
     created_at: Optional[datetime] = None    
     hanger_needed: bool = False
+    notes: Optional[str] = None
     
     class Config: 
         from_attributes = True
