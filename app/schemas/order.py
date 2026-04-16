@@ -30,6 +30,7 @@ class OrderCreate(BaseModel):
     notes: Optional[str] = None
     items: List[OrderItemBase]
     credits_to_use: Optional[float] = 0.0
+    hanger_needed: Optional[bool] = False
 
 class OrderItemResponse(OrderItemBase):
     unit_price: float
@@ -54,6 +55,7 @@ class OrderResponse(BaseModel):
     items: List[OrderItemResponse]
     customer: Optional[UserResponse] = None
     created_at: Optional[datetime] = None    
+    hanger_needed: bool = False
     
     class Config: 
         from_attributes = True
@@ -72,6 +74,17 @@ class AdminOrderUpdate(BaseModel):
     expected_delivery_time: Optional[str] = None
     items: Optional[List[OrderItemUpdate]] = None 
     notes: Optional[str] = None
+    hanger_needed: Optional[bool] = None
+
+class CustomerOrderUpdate(BaseModel):
+    status: Optional[OrderStatus] = None
+    notes: Optional[str] = None
+    pickup_date: Optional[datetime] = None
+    pickup_time: Optional[str] = None
+
+    items: Optional[List[OrderItemBase]] = None 
+    credits_to_use: Optional[float] = None
+    hanger_needed: Optional[bool] = None
 # from pydantic import BaseModel,Field
 # from typing import List, Optional
 # from datetime import datetime

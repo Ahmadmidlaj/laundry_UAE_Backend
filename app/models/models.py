@@ -74,6 +74,8 @@ class Order(Base):
     discount_applied = Column(Float, default=0.0)
 
     credits_used = Column(Float, default=0.0)
+
+    hanger_needed = Column(Boolean, default=False)
     
     # Relationships
     customer = relationship("User", back_populates="orders")
