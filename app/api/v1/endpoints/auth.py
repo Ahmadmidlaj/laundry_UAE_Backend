@@ -52,26 +52,7 @@ async def register_user(user_in: UserCreate, db: AsyncSession = Depends(get_db))
     await db.refresh(db_user) 
     
     return db_user
-# @router.post("/register", response_model=UserResponse)
-# async def register_user(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
-#     # Check if mobile already exists
-#     result = await db.execute(select(User).where(User.mobile == user_in.mobile))
-#     if result.scalars().first():
-#         raise HTTPException(status_code=400, detail="Mobile number already registered")
-    
-#     db_user = User(
-#         full_name=user_in.full_name,
-#         email=user_in.email,
-#         mobile=user_in.mobile,
-#         hashed_password=security.get_password_hash(user_in.password),
-#         role=user_in.role,
-#         flat_number=user_in.flat_number,
-#         building_name=user_in.building_name
-#     )
-#     db.add(db_user)
-#     await db.commit()
-#     await db.refresh(db_user)
-#     return db_user
+
 
 @router.post("/login/access-token", response_model=Token)
 async def login(db: AsyncSession = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()):

@@ -74,61 +74,8 @@ async def get_admin_dashboard(
         "net_profit": net_profit,
         "active_offers": offers.scalar() or 0
     }
-# @router.get("/admin/dashboard", 
-#     response_model=AdminDashboard,
-#     dependencies=[Depends(RoleChecker([UserRole.ADMIN]))]
-# )
-# async def get_admin_dashboard(
-#     days: Optional[int] = Query(None, description="Filter stats by the last X days"),
-#     db: AsyncSession = Depends(get_db)
-# ):
-#     # 1. Base Statements
-#     cust_stmt = select(func.count(User.id)).where(User.role == UserRole.CUSTOMER)
-#     new_o_stmt = select(func.count(Order.id)).where(Order.status == OrderStatus.NEW_ORDER)
-#     picked_o_stmt = select(func.count(Order.id)).where(Order.status == OrderStatus.PICKED_UP)
-#     del_o_stmt = select(func.count(Order.id)).where(Order.status == OrderStatus.DELIVERED)
-#     rev_stmt = select(func.sum(Transaction.received_amount))
-#     exp_stmt = select(func.sum(Expense.amount))
-#     off_stmt = select(func.count(Offer.id)).where(Offer.is_active == True)
 
-#     # 2. Apply Dynamic Date Filters if 'days' is provided
-#     if days:
-#         cutoff_date = datetime.datetime.now() - datetime.timedelta(days=days)
-#         new_o_stmt = new_o_stmt.where(Order.created_at >= cutoff_date)
-#         picked_o_stmt = picked_o_stmt.where(Order.created_at >= cutoff_date)
-#         del_o_stmt = del_o_stmt.where(Order.created_at >= cutoff_date)
-#         rev_stmt = rev_stmt.where(Transaction.delivery_date >= cutoff_date)
-#         exp_stmt = exp_stmt.where(Expense.expense_date >= cutoff_date)
-#         # Note: Total Customers and Offers generally remain all-time metrics, 
-#         # but you can filter them here too if you add `created_at` to those tables.
-
-#     # 3. Execute Queries
-#     cust_count = await db.execute(cust_stmt)
-#     new_o = await db.execute(new_o_stmt)
-#     picked_o = await db.execute(picked_o_stmt)
-#     delivered_o = await db.execute(del_o_stmt)
-    
-#     # FINANCIAL ENGINE
-#     revenue_res = await db.execute(rev_stmt)
-#     revenue = revenue_res.scalar() or 0.0
-    
-#     expense_res = await db.execute(exp_stmt)
-#     total_expenses = expense_res.scalar() or 0.0
-    
-#     net_profit = revenue - total_expenses
-    
-#     offers = await db.execute(off_stmt)
-
-#     return {
-#         "total_customers": cust_count.scalar() or 0,
-#         "new_orders": new_o.scalar() or 0,
-#         "picked_up_orders": picked_o.scalar() or 0,
-#         "delivered_orders": delivered_o.scalar() or 0,
-#         "total_revenue": revenue,
-#         "total_expenses": total_expenses,
-#         "net_profit": net_profit,
-#         "active_offers": offers.scalar() or 0
-#     }
+   
 
 @router.get("/customer/my-stats", response_model=CustomerStats)
 async def get_customer_stats(

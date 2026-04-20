@@ -9,6 +9,7 @@ class OfferBase(BaseModel):
     start_date: datetime
     end_date: datetime
     is_active: bool = True
+    discount_type: str = "FIXED"
 
 class OfferCreate(OfferBase):
     pass

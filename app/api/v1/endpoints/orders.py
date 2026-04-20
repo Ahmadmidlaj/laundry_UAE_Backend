@@ -193,64 +193,6 @@ async def update_my_order(
 
     raise HTTPException(status_code=400, detail=f"Order cannot be modified while in {order.status} status.")
 
-# @router.patch("/{order_id}/customer", response_model=OrderResponse)
-# async def update_my_order(
-#     order_id: int,
-#     update_data: CustomerOrderUpdate,
-#     db: AsyncSession = Depends(get_db),
-#     current_user: User = Depends(get_current_user)
-# ):
-#     """Customer-facing endpoint to safely update notes, reschedule, or cancel."""
-#     result = await db.execute(
-#         select(Order)
-#         .where(Order.id == order_id, Order.customer_id == current_user.id)
-#         .options(
-#             selectinload(Order.customer),
-#             selectinload(Order.items).joinedload(OrderItem.item),
-#             selectinload(Order.items).joinedload(OrderItem.service_category)
-#         )
-#     )
-#     order = result.scalars().first()
-    
-#     if not order:
-#         raise HTTPException(status_code=404, detail="Order not found")
-
-#     # RULE 1: If DELIVERED, they can ONLY update notes/remarks
-#     if order.status == OrderStatus.DELIVERED:
-#         if update_data.notes is not None:
-#             order.notes = update_data.notes
-#             await db.commit()
-#             await db.refresh(order)
-#         return order
-
-#     # RULE 2: If NEW_ORDER, allow cancellation & rescheduling
-#     if order.status == OrderStatus.NEW_ORDER:
-#         # Handle Cancellation
-#         if update_data.status == OrderStatus.CANCELLED:
-#             order.status = OrderStatus.CANCELLED
-            
-#             # CRITICAL: Refund wallet credits if they used any!
-#             if order.credits_used and order.credits_used > 0:
-#                 current_user.wallet_balance += order.credits_used
-                
-#             await db.commit()
-#             await db.refresh(order)
-#             return order
-
-#         # Handle Reschedule / Notes Update
-#         if update_data.pickup_date:
-#             order.pickup_date = update_data.pickup_date
-#         if update_data.pickup_time:
-#             order.pickup_time = update_data.pickup_time
-#         if update_data.notes is not None:
-#             order.notes = update_data.notes
-
-#         await db.commit()
-#         await db.refresh(order)
-#         return order
-
-#     # Fallback safety
-#     raise HTTPException(status_code=400, detail=f"Order cannot be modified while in {order.status} status.")
 
 @router.post("/", response_model=OrderResponse)
 async def create_order(

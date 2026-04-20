@@ -120,6 +120,7 @@ class Offer(Base):
     start_date = Column(DateTime)
     end_date = Column(DateTime)
     is_active = Column(Boolean, default=True)
+    discount_type = Column(String, default="FIXED")
 
 class Building(Base):
     __tablename__ = "buildings"

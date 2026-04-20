@@ -36,12 +36,3 @@ async def update_existing_item(item_id: int, item_in: ItemUpdate, db: AsyncSessi
         raise HTTPException(status_code=404, detail="Item not found")
     return updated
 
-# @router.get("/services/categories")
-# async def list_service_categories(db: AsyncSession = Depends(get_db)):
-#     """Fetch all active service categories (e.g., Dry Clean, Ironing)"""
-#     result = await db.execute(
-#         select(ServiceCategory).where(ServiceCategory.is_active == True)
-#     )
-#     categories = result.scalars().all()
-#     # Format to match the SimpleCategoryResponse interface
-#     return [{"id": c.id, "name": c.name} for c in categories]
