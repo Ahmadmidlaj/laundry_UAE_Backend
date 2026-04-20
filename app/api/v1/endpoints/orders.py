@@ -171,6 +171,7 @@ async def update_my_order(
             # 6. Update Header with new math
             order.estimated_price = final_price
             order.discount_applied = discount_applied
+            order.final_price = final_price
             order.credits_used = actual_credits_used
 
         # C. Handle Dates & Notes
